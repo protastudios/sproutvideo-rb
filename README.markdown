@@ -135,7 +135,7 @@ Sproutvideo::Video.update('abc123', :tags => [])
 You can upload a custom poster frame for a video by calling the upload_poster_frame method. The first parameter is the id of the video for wish you'd like the poster frame to be associated and the second parameter is the path to the image file.
 
 ```ruby
-SproutVideo::Video.upload_poster_frame('abc123', '/path/to/image.jpg')
+Sproutvideo::Video.upload_poster_frame('abc123', '/path/to/image.jpg')
 ```
 
 ## destroy
@@ -248,10 +248,10 @@ By default, when deleting a folder, all of the contents of that folder (videos a
 
 ```ruby
 # delete the folder and move it's contents to the root folder
-Sproutvideo::Folder.delete('def456')
+Sproutvideo::Folder.destroy('def456')
 
 # delete the folder and everything in it.
-Sproutvideo::Folder.delete('def456', :delete_all => true)
+Sproutvideo::Folder.destroy('def456', :delete_all => true)
 ```
 
 # Playlists
@@ -351,6 +351,7 @@ Pass in the id of the login you wish to delete.
 ```ruby
 Sproutvideo::Login.destroy('asdf1234')
 ```
+
 # Access Grants
 The following methods are available: `list`, `create`, `details`, `update`, `destroy`
 
@@ -424,8 +425,9 @@ Check the API documentation for more information about the data returned by thes
 Each method can be called on it's own for overall account data for all time like this:
 ```ruby
 Sproutvideo::Analytics.play_counts
+Sproutvideo::Analytics.download_counts
 Sproutvideo::Analytics.domains
-SproutVideo::Analytics.geo
+Sproutvideo::Analytics.geo
 Sproutvideo::Analytics.video_types
 Sproutvideo::Analytics.playback_types
 Sproutvideo::Analytics.device_types
@@ -433,11 +435,19 @@ Sproutvideo::Analytics.device_types
 Each method can also take an options hash containing a :video_id for retrieving overall data for a specific video:
 ```ruby
 Sproutvideo::Analytics.play_counts(:video_id => 'abc123')
+Sproutvideo::Analytics.download_counts(:video_id => 'abc123')
 Sproutvideo::Analytics.domains(:video_id => 'abc123')
-SproutVideo::Analytics.geo(:video_id => 'abc123')
+Sproutvideo::Analytics.geo(:video_id => 'abc123')
 Sproutvideo::Analytics.video_types(:video_id => 'abc123')
 Sproutvideo::Analytics.playback_types(:video_id => 'abc123')
 Sproutvideo::Analytics.device_types(:video_id => 'abc123')
+```
+The following methods can also take an options hash containing a :live_stream_id for retrieving overall data for a specific live_stream:
+```ruby
+Sproutvideo::Analytics.play_counts(:live_stream_id => 'abc123')
+Sproutvideo::Analytics.domains(:live_stream_id => 'abc123')
+Sproutvideo::Analytics.geo(:live_stream_id => 'abc123')
+Sproutvideo::Analytics.device_types(:live_stream_id => 'abc123')
 ```
 Each method can also take an optional :start_date and :end_date to specify a date range for the returned data:
 ```ruby
@@ -445,9 +455,21 @@ Sproutvideo::Analytics.play_counts(:start_date => '2013-01-01')
 Sproutvideo::Analytics.device_types(:video_id => 'abc123', :end_date => '2012-12-31')
 ```
 
-Lastly, the geo method can take an optional :country to retrieve playback data by city within that country
+The geo method can take an optional :country to retrieve playback data by city within that country
 ```ruby
 Sproutvideo::Analytics.geo(:video_id => 'abc123', :country => 'US')
+```
+
+## Misc endpoints
+see api docs for more info
+
+```ruby
+Sproutvideo::Analytics.popular_videos
+SproutVideo::Analytics.popular_downloads
+```
+
+```ruby
+Sproutvideo::Analytics.live_stream_overview('abc123')
 ```
 
 # Engagement
@@ -456,21 +478,46 @@ You can grab the total number of seconds of your videos that have been watched l
 Sproutvideo::Analytics.engagement
 ```
 
+and for all livestreams:
+```ruby
+Sproutvideo::Analytics.live_stream_engagement
+```
+
 You can grab engagement for a specific video like so:
 ```ruby
 Sproutvideo::Analytics.engagement(:video_id => 'abc123')
 ```
 
+or for a specific live stream:
+```ruby
+Sproutvideo::Analytics.live_stream_engagement(:live_stream_id => 'abc123')
+```
+
+You can grab playback sessions data for your videos with:
+```ruby
+Sproutvideo::Analytics.engagement_sessions
+```
+
+and for live streams with
+```ruby
+Sproutvideo::Analytics.live_stream_engagement_sessions
+```
+
 Lastly, you can grab every single playback session for a video like this:
 ```ruby
 Sproutvideo::Analytics.engagement_sessions('abc123')
-Sproutvideo::Analytics.engagement_sessions('abc123', :page => 3)
-Sproutvideo::Analytics.engagement_sessions('abc123', :page => 3, :per_page => 40)
+Sproutvideo::Analytics.engagement_sessions('abc123', page: 3)
+Sproutvideo::Analytics.engagement_sessions('abc123', page: 3, :per_page => 40)
+```
+
+and for a live stream:
+```ruby
+Sproutvideo::Analytics.live_stream_engagement_sessions('abc123')
 ```
 
 You can also grab engagement sessions for a video for a specific email address like so:
 ```ruby
-Sproutvideo::Analytics.engagement_sessions('abc123', :vemail => 'test@example.com')
+Sproutvideo::Analytics.engagement_sessions(video_id: 'abc123', vemail: 'test@example.com')
 ```
 
 # Account
@@ -490,6 +537,148 @@ To update account settings:
 Sproutvideo::Account.update({download_sd: true})
 ```
 
+# Subtitles
+The following methods are available: `list`, `create`, `details`, `update`, `destroy`. All requests for a subtitle must be given a `video_id` option indicating the video that you want to access or update the subtitles of.
+
+## list
+By default the subtitle listing is paginated with 25 tags per page and sorted by created at date in ascending order. You can pass two parameters to control the paging: page and per_page.
+
+```ruby
+Sproutvideo::Subtitle.list(:video_id => 'abc123')
+Sproutvideo::Subtitle.list(:video_id => 'abc123', :per_page => 10)
+Sproutvideo::Subtitle.list(:video_id => 'abc123', :per_page => 10, :page => 2)
+```
+
+## create
+Create takes three required parameters, `video_id`, `language`, and `content`, which will be to add the newly created subtitle file and associate it with the provided video id.
+
+```ruby
+Sproutvideo::Subtitle.create(
+  :video_id => 'abc123',
+  :language => 'en',
+  :content => 'WEBVTT FILE...')
+```
+
+## details
+pass both the video and the subtitle id.
+
+```ruby
+Sproutvideo::Subtitle.details(:video_id => 'abc123', id: 'fdc432')
+```
+
+## update
+
+You can change the optional parameters for a subtitle.
+
+```ruby
+Sproutvideo::Subtitle.create(
+  :video_id => 'abc123',
+  :language => 'de',
+  :id => 'fdc432')
+```
+
+## destroy
+Pass in the id of the subtitle you wish to delete.
+
+```ruby
+Sproutvideo::Subtitle.destroy(:video_id => 'abc123', id: 'fdc432')
+```
+
+# Calls to Action
+The following methods are available: `list`, `create`, `details`, `update`, `destroy`. All requests for a call to action must be given a `video_id` option indicating the video that you want to access or update the calls to action of.
+
+## list
+By default the call to action listing is paginated with 25 tags per page and sorted by created at date in ascending order. You can pass two parameters to control the paging: page and per_page.
+
+```ruby
+Sproutvideo::CallToAction.list(:video_id => 'abc123')
+Sproutvideo::CallToAction.list(:video_id => 'abc123', :per_page => 10)
+Sproutvideo::CallToAction.list(:video_id => 'abc123', :per_page => 10, :page => 2)
+```
+
+## create
+Create takes five required parameters, `video_id`, `text`, `url`, `start_time`, and `end_time`, which will be to add the newly created subtitle file and associate it with the provided video id.
+
+```ruby
+Sproutvideo::CallToAction.create(
+  :video_id => 'abc123',
+  :text => 'join now',
+  :start_time => 1,
+  :end_time => 2,
+  :content => 'https://sproutvideo.com')
+```
+
+## details
+pass both the video and the call to action id.
+
+```ruby
+Sproutvideo::CallToAction.details(:video_id => 'abc123', id: 'fdc432')
+```
+
+## update
+
+You can change the optional parameters for a call to action.
+
+```ruby
+Sproutvideo::CallToAction.create(
+  :video_id => 'abc123',
+  :text => 'get it done!',
+  :id => 'fdc432')
+```
+
+## destroy
+Pass in the id of the call to action you wish to delete.
+
+```ruby
+Sproutvideo::CallToAction.destroy(:video_id => 'abc123', id: 'fdc432')
+```
+
+# Live Streams
+The following methods are available: `list`, `create`, `details`, `update`, `destroy`, and `end_stream`.
+
+## list
+By default the call to action listing is paginated with 25 tags per page and sorted by created at date in ascending order. You can pass two parameters to control the paging: page and per_page.
+
+```ruby
+Sproutvideo::LiveStream.list
+Sproutvideo::LiveStream.list(:per_page => 10, :page => 2)
+```
+
+## create
+
+```ruby
+Sproutvideo::LiveStream.create(title: 'hello')
+# with a poster frame
+Sproutvideo::LiveStream.create(title: 'hello', custom_poster_frame: '/path/to/posterframe.jpg')
+```
+
+## details
+
+```ruby
+Sproutvideo::LiveStream.details('abc123')
+```
+
+## update
+You can change the optional parameters
+
+```ruby
+Sproutvideo::LiveStream.update(title: 'get it done!')
+# with a poster frame
+Sproutvideo::LiveStream.update(title: 'hello', custom_poster_frame: '/path/to/posterframe.jpg')
+```
+
+## destroy
+
+```ruby
+Sproutvideo::LiveStream.destroy('abc123')
+```
+
+## end_stream
+
+```ruby
+Sproutvideo::LiveStream.end_stream('abc123')
+```
+
 # Contributing to sproutvideo-rb
 
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
@@ -502,5 +691,5 @@ Sproutvideo::Account.update({download_sd: true})
 
 # Copyright
 
-Copyright (c) 2016 SproutVideo. See LICENSE.txt for
+Copyright (c) 2021 SproutVideo. See LICENSE.txt for
 further details.
